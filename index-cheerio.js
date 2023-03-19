@@ -3,14 +3,21 @@ const cheerio = require("cheerio");
 const url = require("url");
 const fs = require("fs");
 
+require("dotenv").config();
+
+const config = require("./config");
+
+// Define process name
+const processName = config.processName;
+
 // Define the root URL to scrape
-const rootUrl = "https://example.com/";
+const rootUrl = config.rootUrl;
 
 // Define the pattern to match for internal links
-const internalLinkPattern = /example.com/;
+const internalLinkPattern = new RegExp(config.internalLinkPattern);
 
 // Define specific pattern
-const specificPattern = /your-url.com/;
+const specificPattern = new RegExp(config.specificPattern);
 
 // Define a function to scrape a URL
 async function scrapeUrl(urlString, visitedUrls) {
@@ -22,6 +29,7 @@ async function scrapeUrl(urlString, visitedUrls) {
     visitedUrls.add(urlString);
     const response = await axios.get(urlString);
     const $ = cheerio.load(response.data);
+    const htmlContent = $.html();
     const links = $("a")
       .map((i, el) => $(el).attr("href"))
       .get();
@@ -43,7 +51,13 @@ async function scrapeUrl(urlString, visitedUrls) {
     }
   } catch (error) {
     console.log(`I cannot visit the url ${urlString}`);
+    console.error(error);
   }
+
+  console.log({
+    visitedUrls,
+    specificUrls,
+  });
 
   return visitedUrls;
 }
@@ -51,15 +65,21 @@ async function scrapeUrl(urlString, visitedUrls) {
 // Start the scraping process
 const visitedUrls = new Set();
 const specificUrls = new Set();
+console.log(`starting process ${processName}...`);
+console.log(specificPattern);
+
 scrapeUrl(rootUrl, visitedUrls)
   .then((visitedUrls) => {
     // Write the results to a JSON file
     const results = Array.from(visitedUrls);
-    fs.writeFileSync("./output/results.json", JSON.stringify(results));
+    fs.writeFileSync(
+      `./output/${processName}-links.json`,
+      JSON.stringify(results)
+    );
 
     const resultsWithPattern = Array.from(specificUrls);
     fs.writeFileSync(
-      "./output/results-pattern.json",
+      `./output/${processName}-results.json`,
       JSON.stringify(resultsWithPattern)
     );
     console.log("Scraping complete!");
