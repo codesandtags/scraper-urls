@@ -22,14 +22,17 @@ const specificPattern = new RegExp(config.specificPattern);
 // Define a function to scrape a URL
 async function scrapeUrl(urlString, visitedUrls) {
   if (visitedUrls.has(urlString)) {
+    console.log({ "❌ skipped": urlString });
     return visitedUrls;
   }
+
+  console.log({ "🤖 reading": urlString });
 
   try {
     visitedUrls.add(urlString);
     const response = await axios.get(urlString);
     const $ = cheerio.load(response.data);
-    const htmlContent = $.html();
+
     const links = $("a")
       .map((i, el) => $(el).attr("href"))
       .get();
@@ -43,8 +46,17 @@ async function scrapeUrl(urlString, visitedUrls) {
     }
 
     const internalLinks = links
+      .map((link) => url.resolve(urlString, link))
       .filter((link) => link && link.match(internalLinkPattern))
-      .map((link) => url.resolve(urlString, link));
+      .filter((link) => !visitedUrls.has(link));
+
+    /*
+    console.log({
+      links,
+      internalLinks,
+      visitedUrls,
+    });
+    */
 
     for (const link of internalLinks) {
       await scrapeUrl(link, visitedUrls);
@@ -55,7 +67,6 @@ async function scrapeUrl(urlString, visitedUrls) {
   }
 
   console.log({
-    visitedUrls,
     specificUrls,
   });
 
@@ -67,6 +78,8 @@ const visitedUrls = new Set();
 const specificUrls = new Set();
 console.log(`starting process ${processName}...`);
 console.log(specificPattern);
+
+// const start = performance.now();
 
 scrapeUrl(rootUrl, visitedUrls)
   .then((visitedUrls) => {
@@ -83,5 +96,8 @@ scrapeUrl(rootUrl, visitedUrls)
       JSON.stringify(resultsWithPattern)
     );
     console.log("Scraping complete!");
+    // const end = performance.now() - start;
+
+    // console.log(`process took ${end} ms`);
   })
   .catch((error) => console.error(error));

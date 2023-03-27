@@ -191,12 +191,12 @@ const runProcess = async () => {
     .catch((error) => console.error(error));
 };
 
-const start = performance.now();
+// const start = performance.now();
 runProcess()
   .then(() => {
     console.log("process finished! :)");
-    const end = performance.now() - start;
+    // const end = performance.now() - start;
 
-    console.log(`process took ${end} ms`);
+    // console.log(`process took ${end} ms`);
   })
   .catch((error) => console.error(error));
